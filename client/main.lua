@@ -4,6 +4,8 @@ local currentJob = false
 local jobNPC = nil         -- Job NPC entity
 local cleanedVehicles = {} -- Cleaned vehicles List
 local totalPayment = 0     -- Total payment for current job
+local savedClothes = {}    -- Saved clothes for player
+local wasInJob = false     -- Was player in job before death
 
 -- Threads
 CreateThread(function()
@@ -19,7 +21,7 @@ CreateThread(function()
     FreezeEntityPosition(jobNPC, true)
     SetBlockingOfNonTemporaryEvents(jobNPC, true)
 
-    -- create blip 
+    -- create blip
     if Config.JobBlip.enabled then
         local blip = AddBlipForCoord(Config.JobNPC.coords.x, Config.JobNPC.coords.y, Config.JobNPC.coords.z)
         SetBlipSprite(blip, Config.JobBlip.sprite)
@@ -115,7 +117,7 @@ function StartCleaningJob()
     })
 end
 
-function EndCleaningJob()
+function EndCleaningJob(isForced)
     if not currentJob then
         lib.notify({
             title = 'Trabajo de limpieza',
@@ -134,31 +136,40 @@ function EndCleaningJob()
     SetPedComponentVariation(playerPed, 6, originalClothes['shoes_1'], originalClothes['shoes_2'], 2)   -- Zapatos
     SetPedComponentVariation(playerPed, 7, originalClothes['chain_1'], originalClothes['chain_2'], 2)   -- Cadena
 
-    if cleanedCars > 0 then
-        if cleanedCars >= Config.CarsToClean then
-            local bonus = math.random(Config.BonusMin, Config.BonusMax)
-            totalPayment = totalPayment + bonus
-            lib.notify({
-                title = 'Trabajo de limpieza',
-                description = string.format('¡Trabajo terminado! Limpiaste %d autos y recibiste un bono de $%d.',
-                    cleanedCars, bonus),
-                type = 'success',
-                duration = 6000
-            })
+    if not isForced then
+        if cleanedCars > 0 then
+            if cleanedCars >= Config.CarsToClean then
+                local bonus = math.random(Config.BonusMin, Config.BonusMax)
+                totalPayment = totalPayment + bonus
+                lib.notify({
+                    title = 'Trabajo de limpieza',
+                    description = string.format('¡Trabajo terminado! Limpiaste %d autos y recibiste un bono de $%d.',
+                        cleanedCars, bonus),
+                    type = 'success',
+                    duration = 6000
+                })
+            else
+                lib.notify({
+                    title = 'Trabajo de limpieza',
+                    description = string.format('¡Trabajo terminado! Limpiaste %d autos.', cleanedCars),
+                    type = 'success',
+                    duration = 6000
+                })
+            end
+            TriggerServerEvent('cleaningjob:payPlayer', totalPayment)
         else
             lib.notify({
                 title = 'Trabajo de limpieza',
-                description = string.format('¡Trabajo terminado! Limpiaste %d autos.', cleanedCars),
-                type = 'success',
+                description = '¡No limpiaste ningún auto!',
+                type = 'error',
                 duration = 6000
             })
         end
-        TriggerServerEvent('cleaningjob:payPlayer', totalPayment)
     else
         lib.notify({
             title = 'Trabajo de limpieza',
-            description = '¡No limpiaste ningún auto!',
-            type = 'error',
+            description = '¡El trabajo ha sido finalizado!',
+            type = 'warning',
             duration = 6000
         })
     end
@@ -289,3 +300,34 @@ function UpdateVehicleTarget()
         }, Config.VehicleDistance)
     end
 end
+
+-- Events
+AddEventHandler('playerDropped', function(reason)
+    if currentJob then
+        wasInJob = true                -- Mark to player was in job before disconnect
+        savedClothes = originalClothes -- Save clothes for player
+        EndCleaningJob(true)           -- End job
+    end
+end)
+
+AddEventHandler('playerSpawned', function()
+    if wasInJob then
+        local playerPed = PlayerPedId()
+        SetPedComponentVariation(playerPed, 8, savedClothes['tshirt_1'], savedClothes['tshirt_2'], 2)
+        SetPedComponentVariation(playerPed, 11, savedClothes['torso_1'], savedClothes['torso_2'], 2)
+        SetPedComponentVariation(playerPed, 3, savedClothes['arms'], 0, 2)
+        SetPedComponentVariation(playerPed, 4, savedClothes['pants_1'], savedClothes['pants_2'], 2)
+        SetPedComponentVariation(playerPed, 6, savedClothes['shoes_1'], savedClothes['shoes_2'], 2)
+        SetPedComponentVariation(playerPed, 7, savedClothes['chain_1'], savedClothes['chain_2'], 2)
+
+        lib.notify({
+            title = 'Trabajo de limpieza',
+            description = 'Se finalizó el trabajo de limpieza por desconexión.',
+            type = 'warning',
+            duration = 6000
+        })
+
+        wasInJob = false
+        savedClothes = {}
+    end
+end)
