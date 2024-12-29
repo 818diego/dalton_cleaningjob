@@ -1,0 +1,7 @@
+{
+    "start_job": "You have started your car cleaning job!",
+    "cleaned_car": "You cleaned a car! Progress: %d/%d",
+    "payment_received": "You received $%d for cleaning cars!",
+    "no_vehicle": "No vehicle nearby to clean!"
+  }
+  

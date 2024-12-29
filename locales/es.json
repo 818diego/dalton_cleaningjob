@@ -1,0 +1,7 @@
+{
+    "start_job": "¡Has comenzado tu trabajo de limpieza de autos!",
+    "cleaned_car": "¡Limpiaste un auto! Progreso: %d/%d",
+    "payment_received": "¡Recibiste $%d por limpiar autos!",
+    "no_vehicle": "¡No hay vehículo cerca para limpiar!"
+  }
+  
