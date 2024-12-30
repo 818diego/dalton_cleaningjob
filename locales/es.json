@@ -31,5 +31,7 @@
   "pick_up_bucket": "Recoger Cubeta",
   "no_bucket_to_pickup": "¡No hay cubeta para recoger!",
   "bucket_picked_up": "¡Has recogido la cubeta!",
-  "press_e_to_pickup": "Presiona E para recoger la cubeta."
+  "press_e_to_pickup": "Presiona E para recoger la cubeta.",
+  "sponge_state_nil": "¡El estado de la esponja es nulo!",
+  "sponge_dry": "¡La esponja está seca!"
 }
