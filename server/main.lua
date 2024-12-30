@@ -1,4 +1,3 @@
-local oxmysql = exports.oxmysql
 local locales = {
     en = json.decode(LoadResourceFile(GetCurrentResourceName(), 'locales/en.json')),
     es = json.decode(LoadResourceFile(GetCurrentResourceName(), 'locales/es.json'))
