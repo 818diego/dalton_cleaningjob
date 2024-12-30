@@ -1,34 +1,41 @@
 local Locales = require('client/locales')
 local cleanedCars = 0      -- Cars cleaned in current job
 local totalCleanedCars = 0 -- Total cars cleaned
-local currentJob = false
+local currentJob = false   -- Current job state
 local jobNPC = nil         -- Job NPC entity
 local cleanedVehicles = {} -- Cleaned vehicles List
 local totalPayment = 0     -- Total payment for current job
 local savedClothes = {}    -- Saved clothes for player
 local wasInJob = false     -- Was player in job before death
-local bucketPlaced = false -- state of the bucket
 local bucketEntity = nil   -- entity of the bucket
-local isWetted = false     -- state of the sponge
-local hasBucket = false    -- state of the bucket
 local bucketProp = nil     -- Bucket prop entity
 local currentLang = Config.Language
 Locales.LoadLocale(currentLang)
 
+local BUCKET_STATE = {
+    NOT_PLACED = 1,
+    PLACED = 2
+}
+local SPONGE_STATE = {
+    DRY = 1,
+    WET = 2
+}
+local bucketState = BUCKET_STATE.NOT_PLACED
+local spongeState = SPONGE_STATE.DRY
+local hasBucket = false
+
 -- Threads
 CreateThread(function()
-    RequestModel(GetHashKey(Config.JobNPC.model))
-    while not HasModelLoaded(GetHashKey(Config.JobNPC.model)) do
+    RequestModel(Config.JobNPC.model)
+    while not HasModelLoaded(Config.JobNPC.model) do
         Wait(0)
     end
-
     -- create job NPC
-    jobNPC = CreatePed(4, GetHashKey(Config.JobNPC.model), Config.JobNPC.coords.x, Config.JobNPC.coords.y,
+    jobNPC = CreatePed(4, Config.JobNPC.model, Config.JobNPC.coords.x, Config.JobNPC.coords.y,
         Config.JobNPC.coords.z - 1.0, Config.JobNPC.heading, false, true)
     SetEntityInvincible(jobNPC, true)
     FreezeEntityPosition(jobNPC, true)
     SetBlockingOfNonTemporaryEvents(jobNPC, true)
-
     -- create blip
     if Config.JobBlip.enabled then
         local blip = AddBlipForCoord(Config.JobNPC.coords.x, Config.JobNPC.coords.y, Config.JobNPC.coords.z)
@@ -41,16 +48,15 @@ CreateThread(function()
         AddTextComponentString(Config.JobBlip.label)
         EndTextCommandSetBlipName(blip)
     end
-
-    UpdateJobTarget()
+    updateJobTarget()
 end)
 
 CreateThread(function()
     while true do
         Wait(25)
-        if hasBucket and not bucketPlaced and IsControlJustReleased(0, 38) then     -- 'E' key
-            PlaceBucket()
-        elseif not hasBucket and bucketPlaced and IsControlJustReleased(0, 38) then -- 'E' key
+        if hasBucket and bucketState == BUCKET_STATE.NOT_PLACED and IsControlJustReleased(0, 38) then     -- 'E' key
+            placeBucket()
+        elseif not hasBucket and bucketState == BUCKET_STATE.PLACED and IsControlJustReleased(0, 38) then -- 'E' key
             lib.notify({
                 title = Locales._U('job_title'),
                 description = Locales._U('press_e_to_pickup'),
@@ -62,41 +68,41 @@ CreateThread(function()
 end)
 
 -- Functions for job
-function UpdateJobTarget()
+function updateJobTarget()
     exports.ox_target:removeLocalEntity(jobNPC, { 'startCleaning', 'endCleaning' })
 
     local options = {}
 
     -- Start job
     if not currentJob then
-        table.insert(options, {
+        options[#options + 1] = {
             name = 'startCleaning',
             label = Locales._U('start_job'),
             icon = 'fas fa-broom',
             onSelect = function()
-                StartCleaningJob()
-                UpdateJobTarget()
+                startCleaningJob()
+                updateJobTarget()
             end
-        })
+        }
     end
 
     -- End job
     if currentJob then
-        table.insert(options, {
+        options[#options + 1] = {
             name = 'endCleaning',
             label = Locales._U('end_job'),
             icon = 'fas fa-handshake',
             onSelect = function()
-                EndCleaningJob()
-                UpdateJobTarget()
+                endCleaningJob()
+                updateJobTarget()
             end
-        })
+        }
     end
 
     exports.ox_target:addLocalEntity(jobNPC, options)
 end
 
-function TakeBucket()
+local function takeBucket()
     if hasBucket then
         lib.notify({
             title = Locales._U('job_title'),
@@ -106,9 +112,7 @@ function TakeBucket()
         })
         return
     end
-
     hasBucket = true
-
     -- Attach bucket prop to player
     local playerPed = PlayerPedId()
     local propModel = `ba_prop_battle_ice_bucket`
@@ -116,11 +120,9 @@ function TakeBucket()
     while not HasModelLoaded(propModel) do
         Wait(10)
     end
-
     bucketProp = CreateObject(propModel, 0, 0, 0, true, true, true)
     AttachEntityToEntity(bucketProp, playerPed, GetPedBoneIndex(playerPed, 57005), 0.37, 0.01, -0.05, 0.0, 280.0, 53.0,
         true, true, false, true, 1, true)
-
     lib.notify({
         title = Locales._U('job_title'),
         description = Locales._U('bucket_taken'),
@@ -129,7 +131,7 @@ function TakeBucket()
     })
 end
 
-function StartCleaningJob()
+local function startCleaningJob()
     if currentJob then
         lib.notify({
             title = Locales._U('job_title'),
@@ -141,54 +143,48 @@ function StartCleaningJob()
     end
 
     local playerPed = PlayerPedId()
-    local gender = GetEntityModel(playerPed) == GetHashKey("mp_m_freemode_01") and "male" or "female"
+    local gender = GetEntityModel(playerPed) == `mp_m_freemode_01` and "male" or "female"
     local clothes = Config.WorkClothes[gender]
-
-    -- Guardar ropa actual
+    -- Save Clothes
     originalClothes = {
-        tshirt_1 = GetPedDrawableVariation(playerPed, 8),
-        tshirt_2 = GetPedTextureVariation(playerPed, 8),
-        torso_1 = GetPedDrawableVariation(playerPed, 11),
-        torso_2 = GetPedTextureVariation(playerPed, 11),
-        arms = GetPedDrawableVariation(playerPed, 3),
-        pants_1 = GetPedDrawableVariation(playerPed, 4),
-        pants_2 = GetPedTextureVariation(playerPed, 4),
-        shoes_1 = GetPedDrawableVariation(playerPed, 6),
-        shoes_2 = GetPedTextureVariation(playerPed, 6),
-        chain_1 = GetPedDrawableVariation(playerPed, 7),
-        chain_2 = GetPedTextureVariation(playerPed, 7)
+        GetPedDrawableVariation(playerPed, 8),
+        GetPedTextureVariation(playerPed, 8),
+        GetPedDrawableVariation(playerPed, 11),
+        GetPedTextureVariation(playerPed, 11),
+        GetPedDrawableVariation(playerPed, 3),
+        GetPedDrawableVariation(playerPed, 4),
+        GetPedTextureVariation(playerPed, 4),
+        GetPedDrawableVariation(playerPed, 6),
+        GetPedTextureVariation(playerPed, 6),
+        GetPedDrawableVariation(playerPed, 7),
+        GetPedTextureVariation(playerPed, 7)
     }
-
-    -- Cambiar a ropa de trabajo
-    SetPedComponentVariation(playerPed, 8, clothes['tshirt_1'], clothes['tshirt_2'], 2)
-    SetPedComponentVariation(playerPed, 11, clothes['torso_1'], clothes['torso_2'], 2)
-    SetPedComponentVariation(playerPed, 3, clothes['arms'], 0, 2)
-    SetPedComponentVariation(playerPed, 4, clothes['pants_1'], clothes['pants_2'], 2)
-    SetPedComponentVariation(playerPed, 6, clothes['shoes_1'], clothes['shoes_2'], 2)
-    SetPedComponentVariation(playerPed, 7, clothes['chain_1'], clothes['chain_2'], 2)
+    -- Change Clothes for job
+    SetPedComponentVariation(playerPed, 8, clothes.tshirt_1, clothes.tshirt_2, 2)
+    SetPedComponentVariation(playerPed, 11, clothes.torso_1, clothes.torso_2, 2)
+    SetPedComponentVariation(playerPed, 3, clothes.arms, 0, 2)
+    SetPedComponentVariation(playerPed, 4, clothes.pants_1, clothes.pants_2, 2)
+    SetPedComponentVariation(playerPed, 6, clothes.shoes_1, clothes.shoes_2, 2)
+    SetPedComponentVariation(playerPed, 7, clothes.chain_1, clothes.chain_2, 2)
 
     currentJob = true
     cleanedCars = 0
     totalPayment = 0
     cleanedVehicles = {}
-    bucketPlaced = false -- Reinicia el estado de la cubeta
-    isWetted = false     -- Reinicia el estado de la esponja
-
-    -- Take bucket
-    TakeBucket()
-
+    bucketState = BUCKET_STATE.NOT_PLACED -- Reset bucket state
+    spongeState = SPONGE_STATE.DRY        -- Reset sponge state
+    takeBucket()                          -- Take the bucket
     lib.notify({
         title = Locales._U('job_title'),
         description = Locales._U('place_bucket'),
         type = 'inform',
         duration = 6000
     })
-
-    UpdateVehicleTarget()
+    updateVehicleTarget()
 end
 
-function PlaceBucket()
-    if bucketPlaced then
+local function placeBucket()
+    if bucketState == BUCKET_STATE.PLACED then
         lib.notify({
             title = Locales._U('job_title'),
             description = Locales._U('bucket_already_placed'),
@@ -216,26 +212,23 @@ function PlaceBucket()
     PlaceObjectOnGroundProperly(bucketEntity)
     FreezeEntityPosition(bucketEntity, true)
 
-    bucketPlaced = true
+    bucketState = BUCKET_STATE.PLACED
     hasBucket = false
 
     -- Animation for placing the bucket
-    TaskStartScenarioInPlace(playerPed, "PROP_HUMAN_BUM_BIN", 0, true)
     Wait(2000)
     ClearPedTasks(playerPed)
-
     lib.notify({
         title = Locales._U('job_title'),
         description = Locales._U('bucket_placed'),
         type = 'success',
         duration = 6000
     })
-
-    UpdateBucketTarget()
+    updateBucketTarget()
 end
 
-function PickUpBucket()
-    if not bucketPlaced then
+local function pickUpBucket()
+    if bucketState == BUCKET_STATE.NOT_PLACED then
         lib.notify({
             title = Locales._U('job_title'),
             description = Locales._U('no_bucket_to_pickup'),
@@ -247,7 +240,7 @@ function PickUpBucket()
 
     -- Remove bucket entity from ground
     DeleteEntity(bucketEntity)
-    bucketPlaced = false
+    bucketState = BUCKET_STATE.NOT_PLACED
     bucketEntity = nil
 
     -- Attach bucket prop to player
@@ -262,6 +255,16 @@ function PickUpBucket()
     AttachEntityToEntity(bucketProp, playerPed, GetPedBoneIndex(playerPed, 57005), 0.37, 0.01, -0.05, 0.0, 280.0, 53.0,
         true, true, false, true, 1, true)
 
+    -- Load animation
+    RequestAnimDict('anim@mp_snowball')
+    while not HasAnimDictLoaded('anim@mp_snowball') do
+        Wait(10)
+    end
+    -- Play animation
+    TaskPlayAnim(playerPed, 'anim@mp_snowball', 'pickup_snowball', 8.0, -8.0, -1, 1, 0, false, false, false)
+    Wait(2000)
+    ClearPedTasks(playerPed)
+
     hasBucket = true
     lib.notify({
         title = Locales._U('job_title'),
@@ -271,8 +274,8 @@ function PickUpBucket()
     })
 end
 
-function WetSponge()
-    if not bucketPlaced then
+local function wetSponge()
+    if bucketState == BUCKET_STATE.NOT_PLACED then
         lib.notify({
             title = Locales._U('job_title'),
             description = Locales._U('no_bucket'),
@@ -298,8 +301,19 @@ function WetSponge()
         return
     end
 
-    -- Mojar la esponja
-    isWetted = true
+    -- Load animation
+    RequestAnimDict('anim@amb@clubhouse@tutorial@bkr_tut_ig3@')
+    while not HasAnimDictLoaded('anim@amb@clubhouse@tutorial@bkr_tut_ig3@') do
+        Wait(10)
+    end
+    -- Play animation
+    TaskPlayAnim(playerPed, 'anim@amb@clubhouse@tutorial@bkr_tut_ig3@', 'machinic_loop_mechandplayer', 8.0, -8.0, -1, 1,
+        0, false, false, false)
+    Wait(2000)
+    ClearPedTasks(playerPed)
+
+    -- Wet the sponge after cleaning
+    spongeState = SPONGE_STATE.WET
     lib.notify({
         title = Locales._U('job_title'),
         description = Locales._U('sponge_wetted'),
@@ -308,7 +322,7 @@ function WetSponge()
     })
 end
 
-function EndCleaningJob(isForced)
+function endCleaningJob(isForced)
     if not currentJob then
         lib.notify({
             title = Locales._U('job_title'),
@@ -320,32 +334,24 @@ function EndCleaningJob(isForced)
     end
 
     local playerPed = PlayerPedId()
-    SetPedComponentVariation(playerPed, 8, originalClothes['tshirt_1'], originalClothes['tshirt_2'], 2) -- Camiseta
-    SetPedComponentVariation(playerPed, 11, originalClothes['torso_1'], originalClothes['torso_2'], 2)  -- Torso
-    SetPedComponentVariation(playerPed, 3, originalClothes['arms'], 0, 2)                               -- Brazos
-    SetPedComponentVariation(playerPed, 4, originalClothes['pants_1'], originalClothes['pants_2'], 2)   -- Pantalones
-    SetPedComponentVariation(playerPed, 6, originalClothes['shoes_1'], originalClothes['shoes_2'], 2)   -- Zapatos
-    SetPedComponentVariation(playerPed, 7, originalClothes['chain_1'], originalClothes['chain_2'], 2)   -- Cadena
+    SetPedComponentVariation(playerPed, 8, originalClothes[1], originalClothes[2], 2)   -- Camiseta
+    SetPedComponentVariation(playerPed, 11, originalClothes[3], originalClothes[4], 2)  -- Torso
+    SetPedComponentVariation(playerPed, 3, originalClothes[5], 0, 2)                    -- Brazos
+    SetPedComponentVariation(playerPed, 4, originalClothes[6], originalClothes[7], 2)   -- Pantalones
+    SetPedComponentVariation(playerPed, 6, originalClothes[8], originalClothes[9], 2)   -- Zapatos
+    SetPedComponentVariation(playerPed, 7, originalClothes[10], originalClothes[11], 2) -- Cadena
 
     if not isForced then
         if cleanedCars > 0 then
-            if cleanedCars >= Config.CarsToClean then
-                local bonus = math.random(Config.BonusMin, Config.BonusMax)
-                totalPayment = totalPayment + bonus
-                lib.notify({
-                    title = Locales._U('job_title'),
-                    description = Locales._U('end_job_bonus', { count = cleanedCars, bonus = bonus }),
-                    type = 'success',
-                    duration = 6000
-                })
-            else
-                lib.notify({
-                    title = Locales._U('job_title'),
-                    description = Locales._U('end_job_no_bonus', { count = cleanedCars }),
-                    type = 'success',
-                    duration = 6000
-                })
-            end
+            local bonus = cleanedCars >= Config.CarsToClean and math.random(Config.BonusMin, Config.BonusMax) or 0
+            totalPayment = totalPayment + bonus
+            lib.notify({
+                title = Locales._U('job_title'),
+                description = bonus > 0 and Locales._U('end_job_bonus', { count = cleanedCars, bonus = bonus }) or
+                    Locales._U('end_job_no_bonus', { count = cleanedCars }),
+                type = 'success',
+                duration = 6000
+            })
             TriggerServerEvent('cleaningjob:payPlayer', totalPayment)
         else
             lib.notify({
@@ -363,29 +369,28 @@ function EndCleaningJob(isForced)
             duration = 6000
         })
     end
-
     -- Remove bucket prop if still attached
     if bucketProp then
         DetachEntity(bucketProp, true, false)
         DeleteEntity(bucketProp)
         bucketProp = nil
     end
-
-    -- restart values
+    -- Reset values
     currentJob = false
     cleanedCars = 0
     totalPayment = 0
     cleanedVehicles = {}
-    hasBucket = false -- Reset bucket state
-    UpdateVehicleTarget()
+    hasBucket = false    -- Reset bucket state
+    totalCleanedCars = 0 -- Reset total cleaned cars
+    updateVehicleTarget()
 end
 
-function IsVehicleDirty(vehicle)
+local function isVehicleDirty(vehicle)
     local dirtLevel = GetVehicleDirtLevel(vehicle)
     return dirtLevel > 0.5
 end
 
-function EnsureEntityControl(entity)
+local function ensureEntityControl(entity)
     if not NetworkHasControlOfEntity(entity) then
         NetworkRequestControlOfEntity(entity)
         local timeout = 0
@@ -396,13 +401,13 @@ function EnsureEntityControl(entity)
     end
 end
 
-function CleanVehicle(vehicle)
+local function cleanVehicle(vehicle)
     if not currentJob then
         lib.notify({ title = Locales._U('job_title'), description = Locales._U('start_job_first'), type = 'error', duration = 6000 })
         return
     end
 
-    if not isWetted then
+    if spongeState == SPONGE_STATE.DRY then
         lib.notify({
             title = Locales._U('job_title'),
             description = Locales._U('sponge_dry'),
@@ -428,12 +433,11 @@ function CleanVehicle(vehicle)
         return
     end
 
-    if not IsVehicleDirty(vehicle) then
+    if not isVehicleDirty(vehicle) then
         lib.notify({ title = Locales._U('job_title'), description = Locales._U('vehicle_already_clean'), type = 'warning', duration = 6000 })
         return
     end
-
-    EnsureEntityControl(vehicle)
+    ensureEntityControl(vehicle)
 
     local playerPed = PlayerPedId()
     FreezeEntityPosition(playerPed, true) -- Freeze player for dont move while cleaning
@@ -448,9 +452,8 @@ function CleanVehicle(vehicle)
     local prop = CreateObject(propModel, 0, 0, 0, true, true, true)
     AttachEntityToEntity(prop, playerPed, GetPedBoneIndex(playerPed, 57005), 0.12, 0.0, 0.0, 0.0, 270.0, 0.0, true, true,
         false, true, 1, true)
-
     local success = lib.progressCircle({
-        duration = 5000, -- Tiempo reducido por cada parte
+        duration = 10000,
         label = Locales._U('cleaning_vehicle'),
         position = 'bottom',
         useWhileDead = false,
@@ -472,10 +475,7 @@ function CleanVehicle(vehicle)
         totalPayment = totalPayment + payment
         cleanedCars = cleanedCars + 1
         totalCleanedCars = totalCleanedCars + 1
-
-        -- Secar la esponja después de limpiar
-        isWetted = false
-
+        spongeState = SPONGE_STATE.DRY -- update sponge state
         lib.notify({
             title = Locales._U('job_title'),
             description = Locales._U('vehicle_cleaned',
@@ -484,18 +484,15 @@ function CleanVehicle(vehicle)
             duration = 6000
         })
     end
-
     -- remove propId
     DetachEntity(prop, true, false)
     DeleteEntity(prop)
     SetModelAsNoLongerNeeded(propModel)
-
     FreezeEntityPosition(playerPed, false) -- Unfreeze player
 end
 
-function UpdateVehicleTarget()
+local function updateVehicleTarget()
     exports.ox_target:removeGlobalVehicle({ 'cleanVehicle' })
-
     if currentJob then
         exports.ox_target:addGlobalVehicle({
             {
@@ -507,22 +504,22 @@ function UpdateVehicleTarget()
                     return IsVehicleStopped(entity)
                 end,
                 onSelect = function(data)
-                    CleanVehicle(data.entity)
+                    cleanVehicle(data.entity)
                 end
             }
         }, Config.VehicleDistance)
     end
 end
 
-function UpdateBucketTarget()
-    if bucketPlaced and bucketEntity then
+local function updateBucketTarget()
+    if bucketState == BUCKET_STATE.PLACED and bucketEntity then
         exports.ox_target:addLocalEntity(bucketEntity, {
             {
                 name = 'wetSponge',
                 label = Locales._U('wet_sponge'),
                 icon = 'fas fa-tint',
                 onSelect = function()
-                    WetSponge()
+                    wetSponge()
                 end
             },
             {
@@ -530,14 +527,14 @@ function UpdateBucketTarget()
                 label = Locales._U('pick_up_bucket'),
                 icon = 'fas fa-hand-paper',
                 onSelect = function()
-                    PickUpBucket()
+                    pickUpBucket()
                 end
             }
         })
     end
 end
 
-function ReturnBucket()
+local function returnBucket()
     if not hasBucket then
         lib.notify({
             title = Locales._U('job_title'),
@@ -547,21 +544,18 @@ function ReturnBucket()
         })
         return
     end
-
-    -- Elimina el objeto cubeta si estaba en el suelo
-    if bucketPlaced and bucketEntity then
+    -- Remove bucket entity from ground
+    if bucketState == BUCKET_STATE.PLACED and bucketEntity then
         DeleteEntity(bucketEntity)
-        bucketPlaced = false
+        bucketState = BUCKET_STATE.NOT_PLACED
         bucketEntity = nil
     end
-
     -- Remove bucket prop if still attached
     if bucketProp then
         DetachEntity(bucketProp, true, false)
         DeleteEntity(bucketProp)
         bucketProp = nil
     end
-
     hasBucket = false
     lib.notify({
         title = Locales._U('job_title'),
@@ -576,7 +570,7 @@ AddEventHandler('playerDropped', function(reason)
     if currentJob then
         wasInJob = true                -- Mark to player was in job before disconnect
         savedClothes = originalClothes -- Save clothes for player
-        EndCleaningJob(true)           -- End job
+        endCleaningJob(true)           -- End job
     end
 end)
 
