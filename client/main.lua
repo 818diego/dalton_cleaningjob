@@ -11,7 +11,6 @@ local bucketEntity = nil   -- entity of the bucket
 local bucketProp = nil     -- Bucket prop entity
 local currentLang = Config.Language
 Locales.LoadLocale(currentLang)
-
 local BUCKET_STATE = {
     NOT_PLACED = 1,
     PLACED = 2
@@ -68,41 +67,6 @@ CreateThread(function()
 end)
 
 -- Functions for job
-function updateJobTarget()
-    exports.ox_target:removeLocalEntity(jobNPC, { 'startCleaning', 'endCleaning' })
-
-    local options = {}
-
-    -- Start job
-    if not currentJob then
-        options[#options + 1] = {
-            name = 'startCleaning',
-            label = Locales._U('start_job'),
-            icon = 'fas fa-broom',
-            onSelect = function()
-                startCleaningJob()
-                updateJobTarget()
-            end
-        }
-    end
-
-    -- End job
-    if currentJob then
-        options[#options + 1] = {
-            name = 'endCleaning',
-            label = Locales._U('end_job'),
-            icon = 'fas fa-handshake',
-            onSelect = function()
-                endCleaningJob()
-                updateJobTarget()
-            end
-        }
-    end
-
-    exports.ox_target:addLocalEntity(jobNPC, options)
-end
-
--- Functions
 function startCleaningJob()
     if currentJob then
         lib.notify({
@@ -145,14 +109,14 @@ function startCleaningJob()
     cleanedVehicles = {}
     bucketState = BUCKET_STATE.NOT_PLACED -- Reset bucket state
     spongeState = SPONGE_STATE.DRY        -- Reset sponge state
-    takeBucket()                          -- Take the bucket
     lib.notify({
         title = Locales._U('job_title'),
-        description = Locales._U('place_bucket'),
+        description = Locales._U('take_bucket'),
         type = 'inform',
         duration = 6000
     })
     updateVehicleTarget()
+    updateContextMenu()
 end
 
 function placeBucket()
@@ -197,6 +161,8 @@ function placeBucket()
         duration = 6000
     })
     updateBucketTarget()
+    updateContextMenu()
+    updateVehicleTarget() -- Ensure the vehicle cleaning target is available
 end
 
 function endCleaningJob(isForced)
@@ -205,6 +171,16 @@ function endCleaningJob(isForced)
             title = Locales._U('job_title'),
             description = Locales._U('no_active_job'),
             type = 'error',
+            duration = 6000
+        })
+        return
+    end
+
+    if hasBucket then
+        lib.notify({
+            title = Locales._U('job_title'),
+            description = Locales._U('return_bucket_first'),
+            type = 'warning',
             duration = 6000
         })
         return
@@ -257,14 +233,32 @@ function endCleaningJob(isForced)
     cleanedCars = 0
     totalPayment = 0
     cleanedVehicles = {}
-    hasBucket = false    -- Reset bucket state
-    totalCleanedCars = 0 -- Reset total cleaned cars
+    hasBucket = false        -- Reset bucket state
+    totalCleanedCars = 0     -- Reset total cleaned cars
+    updateJobInitialTarget() -- View initial target
+    lib.hideContext()
     updateVehicleTarget()
+end
+
+function updateJobTarget()
+    exports.ox_target:removeLocalEntity(jobNPC, { 'cleaning_menu' })
+
+    local options = {
+        {
+            name = 'cleaning_menu',
+            label = Locales._U('talk_gerardo'),
+            icon = 'fas fa-user',
+            onSelect = function()
+                lib.showContext('cleaning_job_menu')
+            end
+        }
+    }
+    exports.ox_target:addLocalEntity(jobNPC, options)
 end
 
 function updateVehicleTarget()
     exports.ox_target:removeGlobalVehicle({ 'cleanVehicle' })
-    if currentJob then
+    if currentJob and bucketState == BUCKET_STATE.PLACED and spongeState == SPONGE_STATE.WET then
         exports.ox_target:addGlobalVehicle({
             {
                 name = 'cleanVehicle',
@@ -305,8 +299,108 @@ function updateBucketTarget()
     end
 end
 
--- Local functions
-local function pickUpBucket()
+function updateJobInitialTarget()
+    exports.ox_target:removeLocalEntity(jobNPC, { 'cleaning_menu', 'cleaning_active_menu' })
+
+    exports.ox_target:addLocalEntity(jobNPC, {
+        {
+            name = 'cleaning_menu',
+            label = Locales._U('talk_gerardo'),
+            icon = 'fas fa-user',
+            onSelect = function()
+                lib.showContext('cleaning_job_menu')
+            end
+        }
+    })
+end
+
+function updateJobActiveTarget()
+    exports.ox_target:removeLocalEntity(jobNPC, { 'cleaning_menu', 'cleaning_active_menu' })
+
+    exports.ox_target:addLocalEntity(jobNPC, {
+        {
+            name = 'cleaning_active_menu',
+            label = Locales._U('cleaning_menu_label'),
+            icon = 'fas fa-broom',
+            onSelect = function()
+                lib.showContext('cleaning_active_menu')
+            end
+        }
+    })
+end
+
+function updateContextMenu()
+    lib.registerContext({
+        id = 'cleaning_active_menu',
+        title = Locales._U('active_job_title'),
+        options = {
+            {
+                title = Locales._U('end_job'),
+                icon = 'fas fa-stop',
+                description = Locales._U('end_job_desc'),
+                onSelect = function()
+                    endCleaningJob(false)
+                    updateJobInitialTarget()
+                    lib.showContext('cleaning_job_menu')
+                end,
+                disabled = hasBucket                     -- Not allow to end job if has the bucket
+            },
+            {
+                title = hasBucket and Locales._U('return_bucket') or Locales._U('take_bucket'),
+                icon = 'fas fa-hand-paper',
+                description = hasBucket and Locales._U('return_bucket_desc') or Locales._U('take_bucket_desc'),
+                onSelect = function()
+                    if hasBucket then
+                        returnBucket()
+                    else
+                        takeBucket()
+                    end
+                    lib.showContext('cleaning_active_menu')
+                end
+            },
+            {
+                title = Locales._U('exit_menu'),
+                icon = 'fas fa-times',
+                onSelect = function()
+                    lib.hideContext()
+                end
+            }
+        }
+    })
+end
+
+function takeBucket()
+    if hasBucket then
+        lib.notify({
+            title = Locales._U('job_title'),
+            description = Locales._U('already_have_bucket'),
+            type = 'warning',
+            duration = 6000
+        })
+        return
+    end
+    hasBucket = true
+    -- Attach bucket prop to player
+    local playerPed = PlayerPedId()
+    local propModel = `ba_prop_battle_ice_bucket`
+    RequestModel(propModel)
+    while not HasModelLoaded(propModel) do
+        Wait(10)
+    end
+    bucketProp = CreateObject(propModel, 0, 0, 0, true, true, true)
+    AttachEntityToEntity(bucketProp, playerPed, GetPedBoneIndex(playerPed, 57005), 0.37, 0.01, -0.05, 0.0, 280.0, 53.0,
+        true, true, false, true, 1, true)
+    lib.notify({
+        title = Locales._U('job_title'),
+        description = Locales._U('bucket_taken'),
+        type = 'success',
+        duration = 6000
+    })
+    updateContextMenu()
+    updateVehicleTarget()
+end
+
+function pickUpBucket()
     if bucketState == BUCKET_STATE.NOT_PLACED then
         lib.notify({
             title = Locales._U('job_title'),
@@ -351,9 +445,10 @@ local function pickUpBucket()
         type = 'success',
         duration = 6000
     })
+    updateContextMenu()
 end
 
-local function wetSponge()
+function wetSponge()
     if bucketState == BUCKET_STATE.NOT_PLACED then
         lib.notify({
             title = Locales._U('job_title'),
@@ -363,8 +458,7 @@ local function wetSponge()
         })
         return
     end
-
-    -- Verifica si el jugador está cerca de la cubeta
+    -- Verify distance between player and bucket
     local playerPed = PlayerPedId()
     local playerCoords = GetEntityCoords(playerPed)
     local bucketCoords = GetEntityCoords(bucketEntity)
@@ -379,7 +473,6 @@ local function wetSponge()
         })
         return
     end
-
     -- Load animation
     RequestAnimDict('anim@amb@clubhouse@tutorial@bkr_tut_ig3@')
     while not HasAnimDictLoaded('anim@amb@clubhouse@tutorial@bkr_tut_ig3@') do
@@ -390,7 +483,6 @@ local function wetSponge()
         0, false, false, false)
     Wait(2000)
     ClearPedTasks(playerPed)
-
     -- Wet the sponge after cleaning
     spongeState = SPONGE_STATE.WET
     lib.notify({
@@ -399,43 +491,15 @@ local function wetSponge()
         type = 'success',
         duration = 6000
     })
+    updateVehicleTarget()
 end
 
-local function takeBucket()
-    if hasBucket then
-        lib.notify({
-            title = Locales._U('job_title'),
-            description = Locales._U('already_have_bucket'),
-            type = 'warning',
-            duration = 6000
-        })
-        return
-    end
-    hasBucket = true
-    -- Attach bucket prop to player
-    local playerPed = PlayerPedId()
-    local propModel = `ba_prop_battle_ice_bucket`
-    RequestModel(propModel)
-    while not HasModelLoaded(propModel) do
-        Wait(10)
-    end
-    bucketProp = CreateObject(propModel, 0, 0, 0, true, true, true)
-    AttachEntityToEntity(bucketProp, playerPed, GetPedBoneIndex(playerPed, 57005), 0.37, 0.01, -0.05, 0.0, 280.0, 53.0,
-        true, true, false, true, 1, true)
-    lib.notify({
-        title = Locales._U('job_title'),
-        description = Locales._U('bucket_taken'),
-        type = 'success',
-        duration = 6000
-    })
-end
-
-local function isVehicleDirty(vehicle)
+function isVehicleDirty(vehicle)
     local dirtLevel = GetVehicleDirtLevel(vehicle)
     return dirtLevel > 0.5
 end
 
-local function ensureEntityControl(entity)
+function ensureEntityControl(entity)
     if not NetworkHasControlOfEntity(entity) then
         NetworkRequestControlOfEntity(entity)
         local timeout = 0
@@ -446,7 +510,7 @@ local function ensureEntityControl(entity)
     end
 end
 
-local function cleanVehicle(vehicle)
+function cleanVehicle(vehicle)
     if not currentJob then
         lib.notify({ title = Locales._U('job_title'), description = Locales._U('start_job_first'), type = 'error', duration = 6000 })
         return
@@ -536,7 +600,7 @@ local function cleanVehicle(vehicle)
     FreezeEntityPosition(playerPed, false) -- Unfreeze player
 end
 
-local function returnBucket()
+function returnBucket()
     if not hasBucket then
         lib.notify({
             title = Locales._U('job_title'),
@@ -565,6 +629,7 @@ local function returnBucket()
         type = 'success',
         duration = 6000
     })
+    updateContextMenu() -- Update context menu to allow ending the job
 end
 
 -- Events
@@ -597,3 +662,83 @@ AddEventHandler('playerSpawned', function()
         savedClothes = {}
     end
 end)
+
+-- Target Global
+exports.ox_target:addLocalEntity(jobNPC, {
+    {
+        name = 'cleaning_menu',
+        label = Locales._U('menu_label'),
+        icon = 'fas fa-broom',
+        onSelect = function()
+            lib.showContext('cleaning_job_menu')
+        end
+    }
+})
+-- Context Menu ox_lib initially
+lib.registerContext({
+    id = 'cleaning_job_menu',
+    title = Locales._U('job_menu_title'),
+    options = {
+        {
+            title = Locales._U('start_job'),
+            icon = 'fas fa-play',
+            description = Locales._U('start_job_desc'),
+            onSelect = function()
+                startCleaningJob()
+                updateJobActiveTarget()
+                lib.showContext('cleaning_active_menu')
+            end
+        },
+        {
+            title = Locales._U('job_experience'),
+            icon = 'fas fa-chart-line',
+            description = Locales._U('job_exp_desc', { total = totalCleanedCars }),
+            disabled = true
+        },
+        {
+            title = Locales._U('exit_menu'),
+            icon = 'fas fa-times',
+            onSelect = function()
+                lib.hideContext()
+            end
+        }
+    }
+})
+-- Context Menu ox_lib active job
+lib.registerContext({
+    id = 'cleaning_active_menu',
+    title = Locales._U('active_job_title'),
+    options = {
+        {
+            title = Locales._U('end_job'),
+            icon = 'fas fa-stop',
+            description = Locales._U('end_job_desc'),
+            onSelect = function()
+                endCleaningJob(false)
+                updateJobInitialTarget()
+                lib.showContext('cleaning_job_menu')
+            end,
+            disabled = hasBucket -- Not allow to end job if has the bucket
+        },
+        {
+            title = hasBucket and Locales._U('return_bucket') or Locales._U('take_bucket'),
+            icon = 'fas fa-hand-paper',
+            description = hasBucket and Locales._U('return_bucket_desc') or Locales._U('take_bucket_desc'),
+            onSelect = function()
+                if hasBucket then
+                    returnBucket()
+                else
+                    takeBucket()
+                end
+                lib.showContext('cleaning_active_menu')
+            end
+        },
+        {
+            title = Locales._U('exit_menu'),
+            icon = 'fas fa-times',
+            onSelect = function()
+                lib.hideContext()
+            end
+        }
+    }
+})
