@@ -55,3 +55,15 @@ Config.WorkClothes = {       -- configured clothes for the jobs
         ['chain_2'] = 0    -- Chain/Accessory texture/variation
     }
 }
+
+Config.experience = {
+    -- The number in these [brackets] are the level
+    -- The number after = is the exp required to reach that level
+    -- Be sure levels *always* start at level 1 with 0 exp
+    [1] = 0,
+    [2] = 2500,
+    [3] = 10000,
+    [4] = 20000,
+    [5] = 50000,
+    -- You can add or remove levels as you wish
+}

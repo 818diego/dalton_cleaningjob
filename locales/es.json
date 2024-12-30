@@ -15,7 +15,7 @@
   "cleaning_vehicle": "Limpiando vehículo...",
   "clean_vehicle": "Limpiar Vehículo",
   "payment_received": "¡Recibiste ${amount} por limpiar autos!",
-  "take_bucket": "Recoger Cubeta",
+  "take_bucket": "Recoge la cubeta con Gerardo",
   "already_have_bucket": "¡Ya tienes una cubeta!",
   "bucket_taken": "¡Has recogido una cubeta!",
   "place_bucket": "Coloca la cubeta en el suelo.",
@@ -39,10 +39,12 @@
   "start_job_desc": "Comienza el trabajo de limpieza.",
   "end_job_desc": "Termina el trabajo de limpieza.",
   "exit_menu": "Salir del Menú",
-  "job_experience": "Experiencia de Trabajo",
-  "job_exp_desc": "Has limpiado un total de {total} autos.",
+  "job_experience": "Trabajo de Limpieza | Nivel %d/%d",
+  "job_exp_desc": "Te falta %d/%d de experiencia para subir al nivel %d",
+  "job_total_cleanings": "Has limpiado un total de {total} autos.",
   "active_job_title": "Trabajo Activo",
   "take_bucket_desc": "Recoge la cubeta para comenzar a limpiar.",
   "return_bucket_desc": "Devuelve la cubeta para terminar el trabajo.",
-  "return_bucket_first": "¡Primero debes devolver la cubeta!"
+  "return_bucket_first": "¡Primero debes devolver la cubeta!",
+  "exp_gained": "¡Has ganado {amount} puntos de experiencia!"
 }

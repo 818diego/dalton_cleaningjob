@@ -236,6 +236,7 @@ function endCleaningJob(isForced)
     hasBucket = false        -- Reset bucket state
     totalCleanedCars = 0     -- Reset total cleaned cars
     updateJobInitialTarget() -- View initial target
+    updateInitialContextMenu()
     lib.hideContext()
     updateVehicleTarget()
 end
@@ -329,7 +330,41 @@ function updateJobActiveTarget()
     })
 end
 
+local function GetExperienceProgress()
+    local playerData = exports['dalton_cleaningjob']:GetPlayerData()
+    if not playerData then
+        return 1, 0, 0,
+            0 -- Default to level 1 with 0% progress, 0 total cleaned cars, and 0 remaining exp if playerData is nil
+    end
+    local currentExp = playerData.exp or 0
+    local currentLevel = playerData.level or 1
+    local totalCleanedCars = playerData.cleaning_total or 0
+    local nextLevelExp = Config.experience[currentLevel + 1] or Config.experience[currentLevel]
+    local progress = (currentExp / nextLevelExp) * 100
+    local remainingExp = nextLevelExp - currentExp
+    return currentLevel, progress, totalCleanedCars, remainingExp
+end
+
+local function AddExperience(amount)
+    local playerData = exports['dalton_cleaningjob']:GetPlayerData('exp')
+    local currentExp = playerData or 0
+    local newExp = currentExp + amount
+    TriggerServerEvent('dalton_cleaningjob:addPlayerData', 'exp', amount)
+    TriggerServerEvent('dalton_cleaningjob:addPlayerData', 'cleaning_total', 1) -- Increment total cleaned cars
+    lib.notify({
+        title = Locales._U('job_title'),
+        description = Locales._U('exp_gained', { amount = amount }),
+        type = 'success',
+        duration = 6000
+    })
+    updateContextMenu()
+end
+
 function updateContextMenu()
+    local currentLevel, progress, totalCleanedCars, remainingExp = GetExperienceProgress()
+    local nextLevelExp = Config.experience[currentLevel + 1] or Config.experience[currentLevel]
+    local expTitle = string.format(Locales._U('job_experience'), currentLevel, #Config.experience)
+    local expDesc = string.format(Locales._U('job_exp_desc'), nextLevelExp - remainingExp, nextLevelExp, currentLevel + 1)
     lib.registerContext({
         id = 'cleaning_active_menu',
         title = Locales._U('active_job_title'),
@@ -343,7 +378,7 @@ function updateContextMenu()
                     updateJobInitialTarget()
                     lib.showContext('cleaning_job_menu')
                 end,
-                disabled = hasBucket                     -- Not allow to end job if has the bucket
+                disabled = hasBucket -- Not allow to end job if has the bucket
             },
             {
                 title = hasBucket and Locales._U('return_bucket') or Locales._U('take_bucket'),
@@ -357,6 +392,62 @@ function updateContextMenu()
                     end
                     lib.showContext('cleaning_active_menu')
                 end
+            },
+            {
+                title = expTitle,
+                icon = 'fas fa-chart-line',
+                description = expDesc,
+                progress = progress,
+                colorScheme = '#FEFE86',
+                disabled = true
+            },
+            {
+                title = Locales._U('job_total_cleanings', { total = totalCleanedCars }),
+                icon = 'fas fa-car',
+                disabled = true
+            },
+            {
+                title = Locales._U('exit_menu'),
+                icon = 'fas fa-times',
+                onSelect = function()
+                    lib.hideContext()
+                end
+            }
+        }
+    })
+end
+
+function updateInitialContextMenu()
+    local currentLevel, progress, totalCleanedCars, remainingExp = GetExperienceProgress()
+    local nextLevelExp = Config.experience[currentLevel + 1] or Config.experience[currentLevel]
+    local expTitle = string.format(Locales._U('job_experience'), currentLevel, #Config.experience)
+    local expDesc = string.format(Locales._U('job_exp_desc'), nextLevelExp - remainingExp, nextLevelExp, currentLevel + 1)
+    lib.registerContext({
+        id = 'cleaning_job_menu',
+        title = Locales._U('job_menu_title'),
+        options = {
+            {
+                title = Locales._U('start_job'),
+                icon = 'fas fa-play',
+                description = Locales._U('start_job_desc'),
+                onSelect = function()
+                    startCleaningJob()
+                    updateJobActiveTarget()
+                    lib.showContext('cleaning_active_menu')
+                end
+            },
+            {
+                title = expTitle,
+                icon = 'fas fa-chart-line',
+                description = expDesc,
+                progress = progress,
+                colorScheme = '#FEFE86',
+                disabled = true
+            },
+            {
+                title = Locales._U('job_total_cleanings', { total = totalCleanedCars }),
+                icon = 'fas fa-car',
+                disabled = true
             },
             {
                 title = Locales._U('exit_menu'),
@@ -585,6 +676,10 @@ function cleanVehicle(vehicle)
         cleanedCars = cleanedCars + 1
         totalCleanedCars = totalCleanedCars + 1
         spongeState = SPONGE_STATE.DRY -- update sponge state
+
+        local randomExp = math.random(0, 25)
+        TriggerServerEvent('cleaningjob:cleanedVehicle', payment, randomExp)
+
         lib.notify({
             title = Locales._U('job_title'),
             description = Locales._U('vehicle_cleaned',
@@ -674,36 +769,7 @@ exports.ox_target:addLocalEntity(jobNPC, {
         end
     }
 })
--- Context Menu ox_lib initially
-lib.registerContext({
-    id = 'cleaning_job_menu',
-    title = Locales._U('job_menu_title'),
-    options = {
-        {
-            title = Locales._U('start_job'),
-            icon = 'fas fa-play',
-            description = Locales._U('start_job_desc'),
-            onSelect = function()
-                startCleaningJob()
-                updateJobActiveTarget()
-                lib.showContext('cleaning_active_menu')
-            end
-        },
-        {
-            title = Locales._U('job_experience'),
-            icon = 'fas fa-chart-line',
-            description = Locales._U('job_exp_desc', { total = totalCleanedCars }),
-            disabled = true
-        },
-        {
-            title = Locales._U('exit_menu'),
-            icon = 'fas fa-times',
-            onSelect = function()
-                lib.hideContext()
-            end
-        }
-    }
-})
+
 -- Context Menu ox_lib active job
 lib.registerContext({
     id = 'cleaning_active_menu',
@@ -742,3 +808,6 @@ lib.registerContext({
         }
     }
 })
+
+-- Register initial context menu
+updateInitialContextMenu()

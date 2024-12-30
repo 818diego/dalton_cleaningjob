@@ -16,7 +16,7 @@
   "cleaning_vehicle": "Cleaning vehicle...",
   "clean_vehicle": "Clean Vehicle",
   "payment_received": "You received ${amount} for cleaning cars!",
-  "take_bucket": "Take Bucket",
+  "take_bucket": "Pick up the bucket with Gerardo",
   "already_have_bucket": "You already have a bucket!",
   "bucket_taken": "You have taken a bucket!",
   "place_bucket": "Place the bucket on the ground.",
@@ -40,11 +40,13 @@
   "start_job_desc": "Start the cleaning job.",
   "end_job_desc": "End the cleaning job.",
   "exit_menu": "Exit Menu",
-  "job_experience": "Job Experience",
-  "job_exp_desc": "You have cleaned a total of {total} cars.",
+  "job_experience": "Cleaning Job | Level %d/%d",
+  "job_exp_desc": "You need %d/%d XP to reach Level %d",
+  "job_total_cleanings": "You have cleaned a total of {total} cars.",
   "active_job_title": "Active Job",
   "take_bucket_desc": "Take the bucket to start cleaning.",
   "place_bucket_desc": "Place the bucket on the ground.",
   "return_bucket_desc": "Return the bucket to end the job.",
-  "return_bucket_first": "You must return the bucket first!"
+  "return_bucket_first": "You must return the bucket first!",
+  "exp_gained": "You have gained {amount} experience points!"
 }
