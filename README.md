@@ -1,76 +1,76 @@
 # Dalton Cleaning Job
 
-## Descripción
+## Description
 
-El script **Dalton Cleaning Job** es un recurso para servidores de FiveM que permite a los jugadores realizar trabajos de limpieza de vehículos. Los jugadores pueden iniciar el trabajo, limpiar vehículos y recibir pagos por su trabajo.
+The **Dalton Cleaning Job** script is a resource for FiveM servers that allows players to perform vehicle cleaning jobs. Players can start the job, clean vehicles, and receive payments for their work.
 
-## Características
+## Features
 
-- **Inicio y finalización del trabajo**: Los jugadores pueden iniciar y finalizar el trabajo de limpieza interactuando con un NPC.
-- **Progreso del trabajo**: El progreso se muestra mediante notificaciones en pantalla.
-- **Pagos**: Los jugadores reciben pagos por cada vehículo limpiado. Si no terminan el trabajo, reciben un pago proporcional.
-- **Notificaciones**: Notificaciones en pantalla para informar a los jugadores sobre el estado del trabajo y los pagos recibidos.
-- **Soporte multilenguaje**: Soporte para múltiples idiomas (actualmente inglés y español).
-- **Totalmente configurable**: El script es altamente configurable para adaptarse a las necesidades de tu servidor.
+- **Start and end job**: Players can start and end the cleaning job by interacting with an NPC.
+- **Job progress**: Progress is shown through on-screen notifications.
+- **Payments**: Players receive payments for each cleaned vehicle. If they do not finish the job, they receive a proportional payment.
+- **Notifications**: On-screen notifications to inform players about the job status and received payments.
+- **Multilanguage support**: Support for multiple languages (currently English and Spanish).
+- **Fully configurable**: The script is highly configurable to suit your server's needs.
 
-## Instalación
+## Installation
 
-1. **Descarga** el script y colócalo en la carpeta `resources` de tu servidor FiveM.
-2. **Añade** el recurso a tu archivo `server.cfg`:
+1. **Download** the script and place it in your server's `resources` folder.
+2. **Add** the resource to your `server.cfg` file:
     ```plaintext
     ensure dalton_cleaningjob
     ```
-3. Si ya tienes una carpeta inicializada con tus scripts, simplemente mueve el script a esa carpeta.
+3. If you already have a folder initialized with your scripts, simply move the script to that folder.
 
 > [!IMPORTANT]
-> Asegúrate de reiniciar tu servidor después de añadir el script para que los cambios surtan efecto.
+> Make sure to restart your server after adding the script for the changes to take effect.
 
-## Uso
+## Usage
 
-### Interacción
+### Interaction
 
-- **Iniciar trabajo**: Los jugadores pueden iniciar el trabajo de limpieza interactuando con un NPC utilizando `ox_target`.
-- **Finalizar trabajo**: Los jugadores pueden finalizar el trabajo de limpieza interactuando nuevamente con el NPC.
+- **Start job**: Players can start the cleaning job by interacting with an NPC using `ox_target`.
+- **End job**: Players can end the cleaning job by interacting with the NPC again.
 
 > [!TIP]
-> Utiliza `ox_target` para una interacción más fluida con los NPCs.
+> Use `ox_target` for smoother interaction with NPCs.
 
-### Configuración
+### Configuration
 
-El idioma del script se puede configurar en el archivo de configuración `config.lua`:
+The script's language can be configured in the `config.lua` file:
 ```lua
 Config = {}
-Config.Language = 'en' -- Cambiar a 'es' para español
+Config.Language = 'en' -- Change to 'es' for Spanish
 ```
 
 > [!NOTE]
-> Puedes agregar más idiomas creando nuevos archivos JSON en la carpeta `locales`.
+> You can add more languages by creating new JSON files in the `locales` folder.
 
-## Localización
+## Localization
 
-El script soporta múltiples idiomas. Los archivos de localización se encuentran en la carpeta `locales`:
-- `locales/en.json` para inglés
-- `locales/es.json` para español
+The script supports multiple languages. Localization files are located in the `locales` folder:
+- `locales/en.json` for English
+- `locales/es.json` for Spanish
 
-## Dependencias
+## Dependencies
 
-Este script depende de los siguientes recursos:
+This script depends on the following resources:
 - `qbx_core`
 - `ox_target`
 - `ox_lib`
 
-Asegúrate de tener estos recursos instalados y configurados en tu servidor.
+Make sure to have these resources installed and configured on your server.
 
-## Contribuciones
+## Contributions
 
-Las contribuciones son bienvenidas. Si deseas agregar nuevas características o corregir errores, por favor abre un pull request en el repositorio del proyecto.
+Contributions are welcome. If you want to add new features or fix bugs, please open a pull request in the project repository.
 
 > [!NOTE]
-> Este script es solo para Qbox. Si alguien desea adaptarlo para QBCore, por favor envíe un Pull Request (PR).
+> This script is only for Qbox. If anyone wants to adapt it for QBCore, please submit a Pull Request (PR).
 
 > [!TIP]
-> Este es mi primer script, y cualquier recomendación o ayuda para realizar ciertas cosas son bienvenidas y muy agradecidas.
+> This is my first script, and any recommendations or help to do certain things are welcome and greatly appreciated.
 
-## Licencia
+## License
 
-Este proyecto está licenciado bajo la Licencia MIT. Consulta el archivo `LICENSE` para más detalles.
+This project is licensed under the MIT License. See the `LICENSE` file for more details.
