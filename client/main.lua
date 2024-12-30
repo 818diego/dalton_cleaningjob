@@ -162,7 +162,7 @@ function placeBucket()
     })
     updateBucketTarget()
     updateContextMenu()
-    updateVehicleTarget() -- Ensure the vehicle cleaning target is available
+    updateVehicleTarget()
 end
 
 function endCleaningJob(isForced)
@@ -187,12 +187,12 @@ function endCleaningJob(isForced)
     end
 
     local playerPed = PlayerPedId()
-    SetPedComponentVariation(playerPed, 8, originalClothes[1], originalClothes[2], 2)   -- Camiseta
+    SetPedComponentVariation(playerPed, 8, originalClothes[1], originalClothes[2], 2)   -- T-shirt
     SetPedComponentVariation(playerPed, 11, originalClothes[3], originalClothes[4], 2)  -- Torso
-    SetPedComponentVariation(playerPed, 3, originalClothes[5], 0, 2)                    -- Brazos
-    SetPedComponentVariation(playerPed, 4, originalClothes[6], originalClothes[7], 2)   -- Pantalones
-    SetPedComponentVariation(playerPed, 6, originalClothes[8], originalClothes[9], 2)   -- Zapatos
-    SetPedComponentVariation(playerPed, 7, originalClothes[10], originalClothes[11], 2) -- Cadena
+    SetPedComponentVariation(playerPed, 3, originalClothes[5], 0, 2)                    -- Arms
+    SetPedComponentVariation(playerPed, 4, originalClothes[6], originalClothes[7], 2)   -- Pants
+    SetPedComponentVariation(playerPed, 6, originalClothes[8], originalClothes[9], 2)   -- Shoes
+    SetPedComponentVariation(playerPed, 7, originalClothes[10], originalClothes[11], 2) -- Chain
 
     if not isForced then
         if cleanedCars > 0 then
@@ -233,9 +233,9 @@ function endCleaningJob(isForced)
     cleanedCars = 0
     totalPayment = 0
     cleanedVehicles = {}
-    hasBucket = false        -- Reset bucket state
-    totalCleanedCars = 0     -- Reset total cleaned cars
-    updateJobInitialTarget() -- View initial target
+    hasBucket = false
+    totalCleanedCars = 0
+    updateJobInitialTarget()
     updateInitialContextMenu()
     lib.hideContext()
     updateVehicleTarget()
@@ -349,7 +349,7 @@ local function AddExperience(amount)
     local playerData = exports['dalton_cleaningjob']:GetPlayerData('exp')
     local currentExp = playerData or 0
     local newExp = currentExp + amount
-    TriggerServerEvent('dalton_cleaningjob:addPlayerData', 'exp', amount)
+    TriggerServerEvent('dalton_cleaningjob:addPlayerData', 'exp', amount) -- Add experience to player for cleaning
     TriggerServerEvent('dalton_cleaningjob:addPlayerData', 'cleaning_total', 1) -- Increment total cleaned cars
     lib.notify({
         title = Locales._U('job_title'),
@@ -378,7 +378,7 @@ function updateContextMenu()
                     updateJobInitialTarget()
                     lib.showContext('cleaning_job_menu')
                 end,
-                disabled = hasBucket -- Not allow to end job if has the bucket
+                disabled = hasBucket
             },
             {
                 title = hasBucket and Locales._U('return_bucket') or Locales._U('take_bucket'),
@@ -808,6 +808,5 @@ lib.registerContext({
         }
     }
 })
-
 -- Register initial context menu
 updateInitialContextMenu()

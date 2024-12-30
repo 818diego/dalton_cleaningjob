@@ -1,25 +1,22 @@
 -- Ensure proper seeding of math.random()
 math.randomseed(os.time())
--- Initialize table to store player data
 local cache = {}
 
 -- Auto-inject SQL if needed
 local sql = LoadResourceFile(GetCurrentResourceName(), 'dalton_cleaning.sql')
 if sql then MySQL.query(sql) end
 
--- Function to get player identifier
+-- Functions
 local function GetIdentifier(source)
     local identifiers = GetPlayerIdentifiers(source)
     return identifiers[1] -- Assuming the first identifier is the one we need
 end
 
--- Function to get player name
 local function GetName(source)
     local player = exports.qbx_core:GetPlayer(source)
     return player.PlayerData.charinfo.firstname .. ' ' .. player.PlayerData.charinfo.lastname
 end
 
--- Insert new player into database
 --- @param source number
 local function InsertPlayer(source)
     if not source then return end
@@ -41,7 +38,6 @@ local function InsertPlayer(source)
     return cache[identifier]
 end
 
--- Returns player data from dalton_cleaning table
 ---@param source number
 ---@param type string|nil
 local function GetPlayerData(source, type)
@@ -68,7 +64,6 @@ local function GetPlayerData(source, type)
     return data
 end
 
--- Modify player data
 --- @param source number
 --- @param dataType string
 --- @param amount number
@@ -96,7 +91,6 @@ local function AddPlayerData(source, dataType, amount)
     end
 end
 
--- Save player data to database
 --- @param identifier string
 local function SavePlayerData(identifier)
     if not identifier then return end
@@ -111,68 +105,6 @@ local function SavePlayerData(identifier)
     if cache[identifier] then cache[identifier] = nil end
 end
 
--- Fetch the top players by xp
---- @return table
-local function GetTopPlayers()
-    local query = [[
-        SELECT name, level, exp, cleaning_total
-        FROM `dalton_cleaning`
-        ORDER BY exp DESC
-        LIMIT 10
-    ]]
-    local result = MySQL.query.await(query)
-    local players = {}
-    if result and #result > 0 then
-        for _, player in ipairs(result) do
-            players[#players + 1] = {
-                name = player.name or 'Unknown',
-                level = player.level or 1,
-                exp = player.exp or 0,
-                cleaning_total = player.cleaning_total or 0
-            }
-        end
-    end
-    return players
-end
-
--- Register a callback for client-side requests
-lib.callback.register('dalton_cleaning:gettopplayers', function()
-    return GetTopPlayers()
-end)
-
--- Callback used to return players data from dalton_cleaning
---- @param source number
---- @param type string|nil
-lib.callback.register('dalton_cleaning:getplayerdata', function(source, type)
-    return GetPlayerData(source, type)
-end)
-
--- Event handler to update database for all players in cache on resource stop
---- @param resourceName string
-AddEventHandler('onResourceStop', function(resourceName)
-    if GetCurrentResourceName() ~= resourceName then return end
-    for identifier, _ in pairs(cache) do
-        SavePlayerData(identifier)
-    end
-end)
-
--- Event handler to save all players data on server restart/shutdown
-AddEventHandler('txAdmin:events:serverShuttingDown', function()
-    for identifier, _ in pairs(cache) do
-        SavePlayerData(identifier)
-    end
-end)
-
--- Event handler to update database with a single players data upon disconnect
-AddEventHandler('playerDropped', function()
-    if not source then return end
-    local source = source
-    local identifier = GetIdentifier(source)
-    if not identifier then return end
-    SavePlayerData(identifier)
-end)
-
--- Define a translate function for server-side localization
 local function translate(lang, key, params)
     local file = LoadResourceFile(GetCurrentResourceName(), 'locales/' .. lang .. '.json')
     if file then
@@ -189,17 +121,45 @@ local function translate(lang, key, params)
     end
 end
 
+-- Callbacks
+--- @param source number
+--- @param type string|nil
+lib.callback.register('dalton_cleaning:getplayerdata', function(source, type)
+    return GetPlayerData(source, type)
+end)
+
+-- Events
+--- @param resourceName string
+AddEventHandler('onResourceStop', function(resourceName)
+    if GetCurrentResourceName() ~= resourceName then return end
+    for identifier, _ in pairs(cache) do
+        SavePlayerData(identifier)
+    end
+end)
+
+AddEventHandler('txAdmin:events:serverShuttingDown', function()
+    for identifier, _ in pairs(cache) do
+        SavePlayerData(identifier)
+    end
+end)
+
+AddEventHandler('playerDropped', function()
+    if not source then return end
+    local source = source
+    local identifier = GetIdentifier(source)
+    if not identifier then return end
+    SavePlayerData(identifier)
+end)
+
 RegisterNetEvent('cleaningjob:cleanedVehicle')
 AddEventHandler('cleaningjob:cleanedVehicle', function(payment, randomExp)
     local src = source
     local identifier = GetIdentifier(src)
     if not identifier then return end
-
     -- Add experience points and increment total cleaned cars
     AddPlayerData(src, 'exp', randomExp)
     AddPlayerData(src, 'cleaning_total', 1)
 
-    -- Notify the player
     TriggerClientEvent('ox_lib:notify', src, {
         title = translate(Config.Language, 'job_title'),
         description = translate(Config.Language, 'exp_gained', { amount = randomExp }),
