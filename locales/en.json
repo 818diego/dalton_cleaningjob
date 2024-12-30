@@ -15,5 +15,21 @@
   "start_job_first": "You must start the job first!",
   "cleaning_vehicle": "Cleaning vehicle...",
   "clean_vehicle": "Clean Vehicle",
-  "payment_received": "You received ${amount} for cleaning cars!"
+  "payment_received": "You received ${amount} for cleaning cars!",
+  "take_bucket": "Take Bucket",
+  "already_have_bucket": "You already have a bucket!",
+  "bucket_taken": "You have taken a bucket!",
+  "place_bucket": "Place the bucket on the ground.",
+  "bucket_already_placed": "The bucket is already placed!",
+  "bucket_placed": "You have placed the bucket!",
+  "no_bucket": "You don't have a bucket!",
+  "too_far_bucket": "You are too far from the bucket!",
+  "sponge_wetted": "You have wetted the sponge!",
+  "wet_sponge": "Wet Sponge",
+  "no_bucket_to_return": "You don't have a bucket to return!",
+  "bucket_returned": "You have returned the bucket!",
+  "pick_up_bucket": "Pick Up Bucket",
+  "no_bucket_to_pickup": "There is no bucket to pick up!",
+  "bucket_picked_up": "You have picked up the bucket!",
+  "press_e_to_pickup": "Press E to pick up the bucket."
 }

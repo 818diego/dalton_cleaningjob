@@ -15,5 +15,21 @@
   "start_job_first": "¡Debes comenzar el trabajo primero!",
   "cleaning_vehicle": "Limpiando vehículo...",
   "clean_vehicle": "Limpiar Vehículo",
-  "payment_received": "¡Recibiste ${amount} por limpiar autos!"
+  "payment_received": "¡Recibiste ${amount} por limpiar autos!",
+  "take_bucket": "Recoger Cubeta",
+  "already_have_bucket": "¡Ya tienes una cubeta!",
+  "bucket_taken": "¡Has recogido una cubeta!",
+  "place_bucket": "Coloca la cubeta en el suelo.",
+  "bucket_already_placed": "¡La cubeta ya está colocada!",
+  "bucket_placed": "¡Has colocado la cubeta!",
+  "no_bucket": "¡No tienes una cubeta!",
+  "too_far_bucket": "¡Estás demasiado lejos de la cubeta!",
+  "sponge_wetted": "¡Has mojado la esponja!",
+  "wet_sponge": "Mojar Esponja",
+  "no_bucket_to_return": "¡No tienes una cubeta para devolver!",
+  "bucket_returned": "¡Has devuelto la cubeta!",
+  "pick_up_bucket": "Recoger Cubeta",
+  "no_bucket_to_pickup": "¡No hay cubeta para recoger!",
+  "bucket_picked_up": "¡Has recogido la cubeta!",
+  "press_e_to_pickup": "Presiona E para recoger la cubeta."
 }

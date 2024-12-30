@@ -25,7 +25,7 @@ Config.JobBlip = {
 
 Config.VehicleDistance = 1.0 -- Distance to activate interaction
 
-Config.Language = 'en'       -- Default language ('en' for English, 'es' for Spanish)
+Config.Language = 'es'       -- Default language ('en' for English, 'es' for Spanish)
 
 Config.WorkClothes = {       -- configured clothes for the jobs
     male = {

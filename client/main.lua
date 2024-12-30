@@ -7,6 +7,11 @@ local cleanedVehicles = {} -- Cleaned vehicles List
 local totalPayment = 0     -- Total payment for current job
 local savedClothes = {}    -- Saved clothes for player
 local wasInJob = false     -- Was player in job before death
+local bucketPlaced = false -- state of the bucket
+local bucketEntity = nil   -- entity of the bucket
+local isWetted = false     -- state of the sponge
+local hasBucket = false    -- state of the bucket
+local bucketProp = nil     -- Bucket prop entity
 local currentLang = Config.Language
 Locales.LoadLocale(currentLang)
 
@@ -40,12 +45,29 @@ CreateThread(function()
     UpdateJobTarget()
 end)
 
+CreateThread(function()
+    while true do
+        Wait(25)
+        if hasBucket and not bucketPlaced and IsControlJustReleased(0, 38) then     -- 'E' key
+            PlaceBucket()
+        elseif not hasBucket and bucketPlaced and IsControlJustReleased(0, 38) then -- 'E' key
+            lib.notify({
+                title = Locales._U('job_title'),
+                description = Locales._U('press_e_to_pickup'),
+                type = 'inform',
+                duration = 6000
+            })
+        end
+    end
+end)
+
 -- Functions for job
 function UpdateJobTarget()
-    -- Remove exports for options
     exports.ox_target:removeLocalEntity(jobNPC, { 'startCleaning', 'endCleaning' })
 
     local options = {}
+
+    -- Start job
     if not currentJob then
         table.insert(options, {
             name = 'startCleaning',
@@ -56,7 +78,10 @@ function UpdateJobTarget()
                 UpdateJobTarget()
             end
         })
-    else
+    end
+
+    -- End job
+    if currentJob then
         table.insert(options, {
             name = 'endCleaning',
             label = Locales._U('end_job'),
@@ -67,7 +92,41 @@ function UpdateJobTarget()
             end
         })
     end
+
     exports.ox_target:addLocalEntity(jobNPC, options)
+end
+
+function TakeBucket()
+    if hasBucket then
+        lib.notify({
+            title = Locales._U('job_title'),
+            description = Locales._U('already_have_bucket'),
+            type = 'warning',
+            duration = 6000
+        })
+        return
+    end
+
+    hasBucket = true
+
+    -- Attach bucket prop to player
+    local playerPed = PlayerPedId()
+    local propModel = `ba_prop_battle_ice_bucket`
+    RequestModel(propModel)
+    while not HasModelLoaded(propModel) do
+        Wait(10)
+    end
+
+    bucketProp = CreateObject(propModel, 0, 0, 0, true, true, true)
+    AttachEntityToEntity(bucketProp, playerPed, GetPedBoneIndex(playerPed, 57005), 0.37, 0.01, -0.05, 0.0, 280.0, 53.0,
+        true, true, false, true, 1, true)
+
+    lib.notify({
+        title = Locales._U('job_title'),
+        description = Locales._U('bucket_taken'),
+        type = 'success',
+        duration = 6000
+    })
 end
 
 function StartCleaningJob()
@@ -85,6 +144,7 @@ function StartCleaningJob()
     local gender = GetEntityModel(playerPed) == GetHashKey("mp_m_freemode_01") and "male" or "female"
     local clothes = Config.WorkClothes[gender]
 
+    -- Guardar ropa actual
     originalClothes = {
         tshirt_1 = GetPedDrawableVariation(playerPed, 8),
         tshirt_2 = GetPedTextureVariation(playerPed, 8),
@@ -99,22 +159,150 @@ function StartCleaningJob()
         chain_2 = GetPedTextureVariation(playerPed, 7)
     }
 
-    SetPedComponentVariation(playerPed, 8, clothes['tshirt_1'], clothes['tshirt_2'], 2) -- Camiseta
-    SetPedComponentVariation(playerPed, 11, clothes['torso_1'], clothes['torso_2'], 2)  -- Torso
-    SetPedComponentVariation(playerPed, 3, clothes['arms'], 0, 2)                       -- Brazos
-    SetPedComponentVariation(playerPed, 4, clothes['pants_1'], clothes['pants_2'], 2)   -- Pantalones
-    SetPedComponentVariation(playerPed, 6, clothes['shoes_1'], clothes['shoes_2'], 2)   -- Zapatos
-    SetPedComponentVariation(playerPed, 7, clothes['chain_1'], clothes['chain_2'], 2)   -- Cadena
-
+    -- Cambiar a ropa de trabajo
+    SetPedComponentVariation(playerPed, 8, clothes['tshirt_1'], clothes['tshirt_2'], 2)
+    SetPedComponentVariation(playerPed, 11, clothes['torso_1'], clothes['torso_2'], 2)
+    SetPedComponentVariation(playerPed, 3, clothes['arms'], 0, 2)
+    SetPedComponentVariation(playerPed, 4, clothes['pants_1'], clothes['pants_2'], 2)
+    SetPedComponentVariation(playerPed, 6, clothes['shoes_1'], clothes['shoes_2'], 2)
+    SetPedComponentVariation(playerPed, 7, clothes['chain_1'], clothes['chain_2'], 2)
 
     currentJob = true
     cleanedCars = 0
     totalPayment = 0
     cleanedVehicles = {}
-    UpdateVehicleTarget()
+    bucketPlaced = false -- Reinicia el estado de la cubeta
+    isWetted = false     -- Reinicia el estado de la esponja
+
+    -- Take bucket
+    TakeBucket()
+
     lib.notify({
         title = Locales._U('job_title'),
-        description = Locales._U('start_job'),
+        description = Locales._U('place_bucket'),
+        type = 'inform',
+        duration = 6000
+    })
+
+    UpdateVehicleTarget()
+end
+
+function PlaceBucket()
+    if bucketPlaced then
+        lib.notify({
+            title = Locales._U('job_title'),
+            description = Locales._U('bucket_already_placed'),
+            type = 'warning',
+            duration = 6000
+        })
+        return
+    end
+
+    local playerPed = PlayerPedId()
+    local coords = GetEntityCoords(playerPed)
+
+    -- Remove bucket prop from player
+    DetachEntity(bucketProp, true, false)
+    DeleteEntity(bucketProp)
+    bucketProp = nil
+
+    -- Create bucket entity on ground
+    RequestModel(`ba_prop_battle_ice_bucket`)
+    while not HasModelLoaded(`ba_prop_battle_ice_bucket`) do
+        Wait(10)
+    end
+
+    bucketEntity = CreateObject(`ba_prop_battle_ice_bucket`, coords.x, coords.y, coords.z - 1.0, true, true, true)
+    PlaceObjectOnGroundProperly(bucketEntity)
+    FreezeEntityPosition(bucketEntity, true)
+
+    bucketPlaced = true
+    hasBucket = false
+
+    -- Animation for placing the bucket
+    TaskStartScenarioInPlace(playerPed, "PROP_HUMAN_BUM_BIN", 0, true)
+    Wait(2000)
+    ClearPedTasks(playerPed)
+
+    lib.notify({
+        title = Locales._U('job_title'),
+        description = Locales._U('bucket_placed'),
+        type = 'success',
+        duration = 6000
+    })
+
+    UpdateBucketTarget()
+end
+
+function PickUpBucket()
+    if not bucketPlaced then
+        lib.notify({
+            title = Locales._U('job_title'),
+            description = Locales._U('no_bucket_to_pickup'),
+            type = 'error',
+            duration = 6000
+        })
+        return
+    end
+
+    -- Remove bucket entity from ground
+    DeleteEntity(bucketEntity)
+    bucketPlaced = false
+    bucketEntity = nil
+
+    -- Attach bucket prop to player
+    local playerPed = PlayerPedId()
+    local propModel = `ba_prop_battle_ice_bucket`
+    RequestModel(propModel)
+    while not HasModelLoaded(propModel) do
+        Wait(10)
+    end
+
+    bucketProp = CreateObject(propModel, 0, 0, 0, true, true, true)
+    AttachEntityToEntity(bucketProp, playerPed, GetPedBoneIndex(playerPed, 57005), 0.37, 0.01, -0.05, 0.0, 280.0, 53.0,
+        true, true, false, true, 1, true)
+
+    hasBucket = true
+    lib.notify({
+        title = Locales._U('job_title'),
+        description = Locales._U('bucket_picked_up'),
+        type = 'success',
+        duration = 6000
+    })
+end
+
+function WetSponge()
+    if not bucketPlaced then
+        lib.notify({
+            title = Locales._U('job_title'),
+            description = Locales._U('no_bucket'),
+            type = 'error',
+            duration = 6000
+        })
+        return
+    end
+
+    -- Verifica si el jugador está cerca de la cubeta
+    local playerPed = PlayerPedId()
+    local playerCoords = GetEntityCoords(playerPed)
+    local bucketCoords = GetEntityCoords(bucketEntity)
+    local distance = #(playerCoords - bucketCoords)
+
+    if distance > 2.0 then
+        lib.notify({
+            title = Locales._U('job_title'),
+            description = Locales._U('too_far_bucket'),
+            type = 'error',
+            duration = 6000
+        })
+        return
+    end
+
+    -- Mojar la esponja
+    isWetted = true
+    lib.notify({
+        title = Locales._U('job_title'),
+        description = Locales._U('sponge_wetted'),
         type = 'success',
         duration = 6000
     })
@@ -176,11 +364,19 @@ function EndCleaningJob(isForced)
         })
     end
 
+    -- Remove bucket prop if still attached
+    if bucketProp then
+        DetachEntity(bucketProp, true, false)
+        DeleteEntity(bucketProp)
+        bucketProp = nil
+    end
+
     -- restart values
     currentJob = false
     cleanedCars = 0
     totalPayment = 0
     cleanedVehicles = {}
+    hasBucket = false -- Reset bucket state
     UpdateVehicleTarget()
 end
 
@@ -203,6 +399,16 @@ end
 function CleanVehicle(vehicle)
     if not currentJob then
         lib.notify({ title = Locales._U('job_title'), description = Locales._U('start_job_first'), type = 'error', duration = 6000 })
+        return
+    end
+
+    if not isWetted then
+        lib.notify({
+            title = Locales._U('job_title'),
+            description = Locales._U('sponge_dry'),
+            type = 'error',
+            duration = 6000
+        })
         return
     end
 
@@ -244,7 +450,7 @@ function CleanVehicle(vehicle)
         false, true, 1, true)
 
     local success = lib.progressCircle({
-        duration = 10000,
+        duration = 5000, -- Tiempo reducido por cada parte
         label = Locales._U('cleaning_vehicle'),
         position = 'bottom',
         useWhileDead = false,
@@ -266,14 +472,19 @@ function CleanVehicle(vehicle)
         totalPayment = totalPayment + payment
         cleanedCars = cleanedCars + 1
         totalCleanedCars = totalCleanedCars + 1
+
+        -- Secar la esponja después de limpiar
+        isWetted = false
+
         lib.notify({
             title = Locales._U('job_title'),
             description = Locales._U('vehicle_cleaned',
-            { current = cleanedCars, target = Config.CarsToClean, total = totalCleanedCars }),
+                { current = cleanedCars, target = Config.CarsToClean, total = totalCleanedCars }),
             type = 'inform',
             duration = 6000
         })
     end
+
     -- remove propId
     DetachEntity(prop, true, false)
     DeleteEntity(prop)
@@ -301,6 +512,63 @@ function UpdateVehicleTarget()
             }
         }, Config.VehicleDistance)
     end
+end
+
+function UpdateBucketTarget()
+    if bucketPlaced and bucketEntity then
+        exports.ox_target:addLocalEntity(bucketEntity, {
+            {
+                name = 'wetSponge',
+                label = Locales._U('wet_sponge'),
+                icon = 'fas fa-tint',
+                onSelect = function()
+                    WetSponge()
+                end
+            },
+            {
+                name = 'pickUpBucket',
+                label = Locales._U('pick_up_bucket'),
+                icon = 'fas fa-hand-paper',
+                onSelect = function()
+                    PickUpBucket()
+                end
+            }
+        })
+    end
+end
+
+function ReturnBucket()
+    if not hasBucket then
+        lib.notify({
+            title = Locales._U('job_title'),
+            description = Locales._U('no_bucket_to_return'),
+            type = 'error',
+            duration = 6000
+        })
+        return
+    end
+
+    -- Elimina el objeto cubeta si estaba en el suelo
+    if bucketPlaced and bucketEntity then
+        DeleteEntity(bucketEntity)
+        bucketPlaced = false
+        bucketEntity = nil
+    end
+
+    -- Remove bucket prop if still attached
+    if bucketProp then
+        DetachEntity(bucketProp, true, false)
+        DeleteEntity(bucketProp)
+        bucketProp = nil
+    end
+
+    hasBucket = false
+    lib.notify({
+        title = Locales._U('job_title'),
+        description = Locales._U('bucket_returned'),
+        type = 'success',
+        duration = 6000
+    })
 end
 
 -- Events
