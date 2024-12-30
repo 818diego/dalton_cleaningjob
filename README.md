@@ -2,7 +2,7 @@
 
 ## Description
 
-The **Dalton Cleaning Job** script is a resource for FiveM servers that allows players to perform vehicle cleaning jobs. Players can start the job, clean vehicles, and receive payments for their work.
+The **Dalton Cleaning Job** script is a resource for FiveM servers that allows players to perform vehicle cleaning jobs. Players can start the job, clean vehicles, and receive payments for their work. This is one of my first scripts, and I am still improving my practice. Any improvements for better performance are greatly appreciated.
 
 ## Features
 
@@ -12,6 +12,9 @@ The **Dalton Cleaning Job** script is a resource for FiveM servers that allows p
 - **Notifications**: On-screen notifications to inform players about the job status and received payments.
 - **Multilanguage support**: Support for multiple languages (currently English and Spanish).
 - **Fully configurable**: The script is highly configurable to suit your server's needs.
+- **Bucket and sponge mechanics**: Players use a bucket and sponge to clean vehicles, adding realism to the job.
+- **Context menu**: A context menu is available for job-related actions, such as taking or returning the bucket.
+- **Vehicle interaction**: Players can only clean stopped vehicles, ensuring realistic job mechanics.
 
 ## Installation
 
@@ -31,6 +34,10 @@ The **Dalton Cleaning Job** script is a resource for FiveM servers that allows p
 
 - **Start job**: Players can start the cleaning job by interacting with an NPC using `ox_target`.
 - **End job**: Players can end the cleaning job by interacting with the NPC again.
+- **Take bucket**: Players can take a bucket to start cleaning vehicles.
+- **Place bucket**: Players can place the bucket on the ground to use it.
+- **Wet sponge**: Players can wet the sponge using the bucket to clean vehicles.
+- **Return bucket**: Players can return the bucket to end the job.
 
 > [!TIP]
 > Use `ox_target` for smoother interaction with NPCs.

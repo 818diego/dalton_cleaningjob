@@ -9,7 +9,7 @@ Config.CarsToClean = 10 -- Number of cars for additional bonus
 
 -- Job NPC configuration
 Config.JobNPC = {
-    model = 's_m_y_garbage',               -- NPC model
+    model = 'a_m_y_vinewood_01',               -- NPC model
     coords = vec3(-826.82, -731.6, 28.05), -- Coordinates
     heading = 180.0                        -- Heading
 }
@@ -17,9 +17,9 @@ Config.JobNPC = {
 -- Job blip configurations
 Config.JobBlip = {
     enabled = true,            -- Show blip or not
-    sprite = 100,              -- Blip icon (see: https://docs.fivem.net/docs/game-references/blips/)
-    color = 5,                 -- Blip color (see: https://docs.fivem.net/docs/game-references/blips/)
-    scale = 0.9,               -- Blip size
+    sprite = 672,              -- Blip icon (see: https://docs.fivem.net/docs/game-references/blips/)
+    color = 25,                 -- Blip color (see: https://docs.fivem.net/docs/game-references/blips/)
+    scale = 0.8,               -- Blip size
     label = "Car Cleaning Job" -- Name shown on the map
 }
 
@@ -49,7 +49,7 @@ Config.WorkClothes = {       -- configured clothes for the jobs
         ['arms'] = 0,      -- Arms model
         ['pants_1'] = 38,  -- Pants model
         ['pants_2'] = 0,   -- Pants texture/variation
-        ['shoes_1'] = 12,  -- Shoes model
+        ['shoes_1'] = 24,  -- Shoes model
         ['shoes_2'] = 0,   -- Shoes texture/variation
         ['chain_1'] = 0,   -- Chain/Accessory model
         ['chain_2'] = 0    -- Chain/Accessory texture/variation
