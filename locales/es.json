@@ -1,7 +1,19 @@
 {
-    "start_job": "¡Has comenzado tu trabajo de limpieza de autos!",
-    "cleaned_car": "¡Limpiaste un auto! Progreso: %d/%d",
-    "payment_received": "¡Recibiste $%d por limpiar autos!",
-    "no_vehicle": "¡No hay vehículo cerca para limpiar!"
-  }
-  
+  "start_job": "Iniciar Trabajo",
+  "already_started": "¡Ya has comenzado el trabajo!",
+  "end_job": "¡Trabajo terminado!",
+  "end_job_bonus": "¡Trabajo terminado! Limpiaste {count} autos y recibiste un bono de ${bonus}.",
+  "end_job_no_bonus": "¡Trabajo terminado! Limpiaste {count} autos.",
+  "no_active_job": "¡No tienes un trabajo activo!",
+  "disconnected_job": "Se finalizó el trabajo de limpieza por desconexión.",
+  "no_vehicles_cleaned": "¡No limpiaste ningún auto!",
+  "vehicle_cleaned": "¡Limpiaste un auto! Progreso: {current}/{target}. Total: {total}",
+  "vehicle_cleaned_error": "¡Este vehículo ya está limpio!",
+  "vehicle_exploded": "¡Este vehículo está explotado y no se puede limpiar!",
+  "vehicle_already_clean": "¡Este vehículo ya está limpio!",
+  "job_title": "Trabajo de Limpieza",
+  "start_job_first": "¡Debes comenzar el trabajo primero!",
+  "cleaning_vehicle": "Limpiando vehículo...",
+  "clean_vehicle": "Limpiar Vehículo",
+  "payment_received": "¡Recibiste ${amount} por limpiar autos!"
+}

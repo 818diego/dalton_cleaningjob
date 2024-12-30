@@ -1,3 +1,4 @@
+local Locales = require('client/locales')
 local cleanedCars = 0      -- Cars cleaned in current job
 local totalCleanedCars = 0 -- Total cars cleaned
 local currentJob = false
@@ -6,6 +7,8 @@ local cleanedVehicles = {} -- Cleaned vehicles List
 local totalPayment = 0     -- Total payment for current job
 local savedClothes = {}    -- Saved clothes for player
 local wasInJob = false     -- Was player in job before death
+local currentLang = Config.Language
+Locales.LoadLocale(currentLang)
 
 -- Threads
 CreateThread(function()
@@ -37,7 +40,7 @@ CreateThread(function()
     UpdateJobTarget()
 end)
 
--- Functions
+-- Functions for job
 function UpdateJobTarget()
     -- Remove exports for options
     exports.ox_target:removeLocalEntity(jobNPC, { 'startCleaning', 'endCleaning' })
@@ -46,7 +49,7 @@ function UpdateJobTarget()
     if not currentJob then
         table.insert(options, {
             name = 'startCleaning',
-            label = 'Comenzar trabajo de limpieza',
+            label = Locales._U('start_job'),
             icon = 'fas fa-broom',
             onSelect = function()
                 StartCleaningJob()
@@ -56,7 +59,7 @@ function UpdateJobTarget()
     else
         table.insert(options, {
             name = 'endCleaning',
-            label = 'Terminar trabajo de limpieza',
+            label = Locales._U('end_job'),
             icon = 'fas fa-handshake',
             onSelect = function()
                 EndCleaningJob()
@@ -70,8 +73,8 @@ end
 function StartCleaningJob()
     if currentJob then
         lib.notify({
-            title = 'Trabajo de limpieza',
-            description = '¡Ya has comenzado el trabajo!',
+            title = Locales._U('job_title'),
+            description = Locales._U('already_started'),
             type = 'inform',
             duration = 6000
         })
@@ -110,8 +113,8 @@ function StartCleaningJob()
     cleanedVehicles = {}
     UpdateVehicleTarget()
     lib.notify({
-        title = 'Trabajo de limpieza',
-        description = '¡Has comenzado el trabajo de limpieza!',
+        title = Locales._U('job_title'),
+        description = Locales._U('start_job'),
         type = 'success',
         duration = 6000
     })
@@ -120,8 +123,8 @@ end
 function EndCleaningJob(isForced)
     if not currentJob then
         lib.notify({
-            title = 'Trabajo de limpieza',
-            description = '¡No tienes un trabajo activo!',
+            title = Locales._U('job_title'),
+            description = Locales._U('no_active_job'),
             type = 'error',
             duration = 6000
         })
@@ -142,16 +145,15 @@ function EndCleaningJob(isForced)
                 local bonus = math.random(Config.BonusMin, Config.BonusMax)
                 totalPayment = totalPayment + bonus
                 lib.notify({
-                    title = 'Trabajo de limpieza',
-                    description = string.format('¡Trabajo terminado! Limpiaste %d autos y recibiste un bono de $%d.',
-                        cleanedCars, bonus),
+                    title = Locales._U('job_title'),
+                    description = Locales._U('end_job_bonus', { count = cleanedCars, bonus = bonus }),
                     type = 'success',
                     duration = 6000
                 })
             else
                 lib.notify({
-                    title = 'Trabajo de limpieza',
-                    description = string.format('¡Trabajo terminado! Limpiaste %d autos.', cleanedCars),
+                    title = Locales._U('job_title'),
+                    description = Locales._U('end_job_no_bonus', { count = cleanedCars }),
                     type = 'success',
                     duration = 6000
                 })
@@ -159,16 +161,16 @@ function EndCleaningJob(isForced)
             TriggerServerEvent('cleaningjob:payPlayer', totalPayment)
         else
             lib.notify({
-                title = 'Trabajo de limpieza',
-                description = '¡No limpiaste ningún auto!',
+                title = Locales._U('job_title'),
+                description = Locales._U('no_vehicles_cleaned'),
                 type = 'error',
                 duration = 6000
             })
         end
     else
         lib.notify({
-            title = 'Trabajo de limpieza',
-            description = '¡El trabajo ha sido finalizado!',
+            title = Locales._U('job_title'),
+            description = Locales._U('disconnected_job'),
             type = 'warning',
             duration = 6000
         })
@@ -200,20 +202,20 @@ end
 
 function CleanVehicle(vehicle)
     if not currentJob then
-        lib.notify({ title = 'Trabajo de limpieza', description = '¡Debes comenzar el trabajo primero!', type = 'error', duration = 6000 })
+        lib.notify({ title = Locales._U('job_title'), description = Locales._U('start_job_first'), type = 'error', duration = 6000 })
         return
     end
 
     local vehicleId = NetworkGetNetworkIdFromEntity(vehicle)
     if cleanedVehicles[vehicleId] then
-        lib.notify({ title = 'Trabajo de limpieza', description = '¡Este vehículo ya está limpio!', type = 'warning', duration = 6000 })
+        lib.notify({ title = Locales._U('job_title'), description = Locales._U('vehicle_already_clean'), type = 'warning', duration = 6000 })
         return
     end
 
     if IsEntityDead(vehicle) then
         lib.notify({
-            title = 'Trabajo de limpieza',
-            description = '¡Este vehículo está explotado y no se puede limpiar!',
+            title = Locales._U('job_title'),
+            description = Locales._U('vehicle_exploded'),
             type = 'warning',
             duration = 6000
         })
@@ -221,7 +223,7 @@ function CleanVehicle(vehicle)
     end
 
     if not IsVehicleDirty(vehicle) then
-        lib.notify({ title = 'Trabajo de limpieza', description = '¡Este vehículo ya está limpio!', type = 'warning', duration = 6000 })
+        lib.notify({ title = Locales._U('job_title'), description = Locales._U('vehicle_already_clean'), type = 'warning', duration = 6000 })
         return
     end
 
@@ -243,7 +245,7 @@ function CleanVehicle(vehicle)
 
     local success = lib.progressCircle({
         duration = 10000,
-        label = 'Limpiando vehículo...',
+        label = Locales._U('cleaning_vehicle'),
         position = 'bottom',
         useWhileDead = false,
         canCancel = false,
@@ -265,9 +267,9 @@ function CleanVehicle(vehicle)
         cleanedCars = cleanedCars + 1
         totalCleanedCars = totalCleanedCars + 1
         lib.notify({
-            title = 'Trabajo de limpieza',
-            description = string.format('¡Limpiaste un auto! Progreso: %d/%d. Total: %d', cleanedCars, Config
-                .CarsToClean, totalCleanedCars),
+            title = Locales._U('job_title'),
+            description = Locales._U('vehicle_cleaned',
+            { current = cleanedCars, target = Config.CarsToClean, total = totalCleanedCars }),
             type = 'inform',
             duration = 6000
         })
@@ -287,7 +289,7 @@ function UpdateVehicleTarget()
         exports.ox_target:addGlobalVehicle({
             {
                 name = 'cleanVehicle',
-                label = 'Limpiar vehículo',
+                label = Locales._U('clean_vehicle'),
                 icon = 'fas fa-soap',
                 distance = Config.VehicleDistance,
                 canInteract = function(entity, distance, data)
@@ -321,8 +323,8 @@ AddEventHandler('playerSpawned', function()
         SetPedComponentVariation(playerPed, 7, savedClothes['chain_1'], savedClothes['chain_2'], 2)
 
         lib.notify({
-            title = 'Trabajo de limpieza',
-            description = 'Se finalizó el trabajo de limpieza por desconexión.',
+            title = Locales._U('job_title'),
+            description = Locales._U('disconnected_job'),
             type = 'warning',
             duration = 6000
         })
