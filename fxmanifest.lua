@@ -3,7 +3,7 @@ game 'gta5'
 
 author 'Dalton Life'
 description 'Cleaning Job System'
-version '0.1'
+version '1.0'
 
 shared_scripts {
     '@ox_lib/init.lua',
