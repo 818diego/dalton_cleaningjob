@@ -9,7 +9,8 @@ The **Dalton Cleaning Job** script is a resource for FiveM servers that allows p
 - **Start and end job**: Players can start and end the cleaning job by interacting with an NPC.
 - **Job progress**: Progress is shown through on-screen notifications.
 - **Payments**: Players receive payments for each cleaned vehicle. If they do not finish the job, they receive a proportional payment.
-- **Notifications**: On-screen notifications to inform players about the job status and received payments.
+- **Experience system**: Players gain experience points (EXP) for each cleaned vehicle. Each level grants a 5% increase in payment.
+- **Notifications**: On-screen notifications to inform players about the job status, received payments, and experience gained.
 - **Multilanguage support**: Support for multiple languages (currently English and Spanish).
 - **Fully configurable**: The script is highly configurable to suit your server's needs.
 - **Bucket and sponge mechanics**: Players use a bucket and sponge to clean vehicles, adding realism to the job.

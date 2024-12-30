@@ -89,6 +89,12 @@ local function AddPlayerData(source, dataType, amount)
     else
         cache[identifier][dataType] = (cache[identifier][dataType] or 0) + amount
     end
+    -- Increase totalPayment based on level
+    if dataType == 'totalPayment' then
+        local level = data.level
+        local percentageIncrease = (level - 1) * 0.05
+        cache[identifier].totalPayment = (cache[identifier].totalPayment or 0) + (amount * (1 + percentageIncrease))
+    end
 end
 
 --- @param identifier string
@@ -168,6 +174,5 @@ AddEventHandler('cleaningjob:cleanedVehicle', function(payment, randomExp)
 end)
 
 -- Register export(s)
-exports('GetPlayerData', GetPlayerData) -- returns player data from dalton_cleaning table (params: source, type) (type param optional)
-exports('AddPlayerData', AddPlayerData) -- edit player data in dalton_cleaning table (params: source, type, amount)
-
+exports('GetPlayerData', GetPlayerData)
+exports('AddPlayerData', AddPlayerData)

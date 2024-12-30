@@ -672,10 +672,13 @@ function cleanVehicle(vehicle)
         cleanedVehicles[vehicleId] = true -- Mark as cleaned
 
         local payment = math.random(Config.PaymentMin, Config.PaymentMax)
-        totalPayment = totalPayment + payment
+        local playerData = exports['dalton_cleaningjob']:GetPlayerData()
+        local level = playerData.level or 1
+        local percentageIncrease = (level - 1) * 0.05
+        totalPayment = totalPayment + (payment * (1 + percentageIncrease))
         cleanedCars = cleanedCars + 1
         totalCleanedCars = totalCleanedCars + 1
-        spongeState = SPONGE_STATE.DRY -- update sponge state
+        spongeState = SPONGE_STATE.DRY
 
         local randomExp = math.random(0, 25)
         TriggerServerEvent('cleaningjob:cleanedVehicle', payment, randomExp)

@@ -7,4 +7,4 @@ local function GetPlayerData(type)
 end
 
 -- Register export(s)
-exports('GetPlayerData', GetPlayerData) -- returns player data from server (params: type) (type param optional)
+exports('GetPlayerData', GetPlayerData)
